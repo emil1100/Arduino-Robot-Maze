@@ -7,6 +7,7 @@
 #define ServoPin 10
 long distance;
 int pos=4;
+int p;
 int RAV; //Random Acces Variable
 
 
@@ -23,13 +24,12 @@ void setup()
   SetAngel(4);
 }
 
-void SetAngel(int myangel){
+int SetAngel(int myangel){
   int p = myangel*11+500;
   digitalWrite(ServoPin, HIGH);
   delayMicroseconds(p);
   digitalWrite(ServoPin, LOW);
-  return(p);
-  
+  return p;
 }
 
 long readUSS()
@@ -62,15 +62,37 @@ void fd()
 void loop()
 {
   for(pos=75;pos<=171;pos+=1){
-    SetAngel(pos);
+    p = SetAngel(pos);
     RAV = millis();
     while(millis()<RAV+(40-p/1000))
     {
         if(pos<105 and pos>75)
         {
-          distance = readUSS()
+              if(readUSS()<   ){FrontWarning();}
+              Serial.println(readUSS);
         }
+        if(pos<171 and pos>151)
+        {
+              if(readUSS()<   ){SideWarning();}
+              Serial.println(readUSS);
+        }
+        if(FrontWarning
     }
   }
-//  Serial.println(distance);
+}
+
+
+void SideWarning()
+{
+  
+}
+
+void FrontWarning()
+{
+  
+}
+
+void NoSide()
+{
+  
 }
