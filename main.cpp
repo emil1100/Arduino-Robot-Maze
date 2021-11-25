@@ -12,7 +12,7 @@
 int P=171;     //Position                                                        /*Position*/
 int SAD;       //SetAngleDelay                                                   /*SetAngleDelay*/
 int M;         //Millis                                                          /*Millis*/
-bool D = false;//Direction         //true = to the left, false is to the midle   /*Direction*/
+bool D = false;//Direction       //true = to the left, false is to the midle     /*Direction*/
 
 //Trimming variables
 int MSR = 85;  //MaxSpeedRight                                                   /*MaxSpeedRight*/
@@ -124,21 +124,9 @@ void Fd()                                                                       
 
 void loop()                                                                      //If it works then done
 {
- if(D=false){
-  if(150<P or P<105){P=P-1;}
-  else if(105<P<150){P=105;}
-  if(P<75){D=true;}
-  }                                 //De här if grejerna är för att servon ska snurra.
-  
- else //if(r=true)
- {
-  if(150<P or P<105){P=P+1;}
-  else if(105<P<150){P=150;}
-  if(171<P){D=false;}
-  }
+ for(P=75;P<=171;P+=1)
   {
-
-
+  if(i>105 and i<110){P+=45;}
    SAD = SetAngle(P);
    M = millis();
    while(millis()<M+(40-SAD/1000))
