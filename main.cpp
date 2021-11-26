@@ -21,8 +21,8 @@ int MSAS = 63;  //MaxSideAdaptionSpeed                                          
 int LTSR = 200;  //LeftTurnSpeedRight                                            /*LeftTurnSpeedRight*/
 int LTSL = 70;  //LeftTurnSpeedLeft                                              /*leftTurnSpeedLeft*/
 
-int FWD = 0;   //FrontWarningDistance                                            /*rontWarningDistance*/
-int SWD = 0;   //SideWarningDistance                                             /*SideWarningDistance*/
+int FWD = 300;   //FrontWarningDistance                                            /*rontWarningDistance*/
+int SWD = 160;   //SideWarningDistance                                             /*SideWarningDistance*/
 int NSWD = 0;  //NoSideWarningDistance                                           /*NoSideWarningDistance*/
 int NSD = 0;   //NoSideDistance                                                  /*NoSideDistance*/
 
@@ -113,19 +113,30 @@ void FW()        //FrontWarning                                                 
 {
   MSR=MSR;
 
+  SetAngle(85);
+  digitalWrite(MR_Ctrl, HIGH);
+  analogWrite(MR_PWM, 50);
+  digitalWrite(ML_Ctrl, HIGH);
+  analogWrite(ML_PWM, 52);
+
+  while(readUSS() > 110)
+  {
+    delay(3);
+  }
+
   digitalWrite(MR_Ctrl, HIGH);
   analogWrite(MR_PWM, 0);
   digitalWrite(ML_Ctrl, HIGH);
   analogWrite(ML_PWM, 0);
 
-  if (greenLights(4) == true)
-    {
-      Turn(90, Right);
-    }
-
-  else if (greenLights(171) == true)
+  if (greenLights(171) == true)
     {
       Turn(90, Left);
+    }
+
+  else if (greenLights(4) == true)
+    {
+      Turn(90, Right);
     }
   else{
     Turn(180, Right);
@@ -141,6 +152,7 @@ void SW()                                                                       
 {
   digitalWrite(MR_Ctrl, HIGH);
   analogWrite(MR_PWM, MSR +MSAS*pow((int(readUSS())/SWD), 2));
+  Serial.print(MSR +MSAS*pow((int(readUSS())/SWD), 2))
   digitalWrite(ML_Ctrl, HIGH);
   analogWrite(ML_PWM, MSL);
   while(readUSS>SW){delay(3);}
@@ -170,7 +182,6 @@ void Fd()                                                                       
 
 void loop()                                                                      //If it works then done
 {
- Serial.println("Här1");
  for(P=75;P<=171;P+=2)
   {
   if(P>105 and P<110){P+=45;}
@@ -178,12 +189,12 @@ void loop()                                                                     
    M = millis();
    while(millis()<M+(SAD))
    {
-       if(75<P<105)
+       if(75<P and P<105)
        {
                if(readUSS<FWD){FW();}
                else{Fd();}
        }
-       else if(151<P<171)
+       else if(151<P and P<171)
        {
                if(readUSS<SWD){SW();}
                else if(readUSS>NSWD){NSW();}
@@ -194,6 +205,6 @@ void loop()                                                                     
     }
   }
   delay(SAD+20);
-  SAD=SetAngle(70);
-  delay(SAD+150);
+  SAD=SetAngle(60);
+  delay(SAD+200);
 }
