@@ -21,13 +21,19 @@ int MSAS = 0;  //MaxSideAdaptionSpeed                                           
 int RTSR = 0;  //RightTurnSpeedRight                                             /*RightTurnSpeedRight*/
 int RTSL = 0;  //RightTurnSpeedLeft                                              /*RightTurnSpeedLeft*/
 
-int FWD = 0;   //FrontWarningDistance                                            /*rontWarningDistance*/
-int SWD = 0;   //SideWarningDistance                                             /*SideWarningDistance*/
+int FWD = 400?;   //FrontWarningDistance                                            /*rontWarningDistance*/
+int SWD = 100?;   //SideWarningDistance                                             /*SideWarningDistance*/
+//går inte ovanstående och understående att lägga ihop?
+//Typ försök hålla ett avstånd till kanten på SWD mm.
+
 int NSWD = 0;  //NoSideWarningDistance                                           /*NoSideWarningDistance*/
-int NSD = 0;   //NoSideDistance                                                  /*NoSideDistance*/
+int NSD = 300?;   //NoSideDistance                                                  /*NoSideDistance*/
 
 int NSBPT = 0; //NoSideBeginingPresisionTime                                     /*NoSideBeginingPresisionTime*/
 int RTT = 0;   //RightTurnTime                                                   /*RightTurnTime*/
+
+
+
 
 
 void setup()                                                                    //done
@@ -41,6 +47,9 @@ void setup()                                                                    
   pinMode(USSe, INPUT);     //set echoPin to INPUT
   pinMode(ServoPin, OUTPUT);//set Some servopin to OUTPUT
   SetAngle(171);
+
+  //Kan vara bra med en sleep, innan den börjar köra...
+  delay(1500);
 }
 
 int SetAngle(int myangel)                                                         //done
@@ -65,15 +74,68 @@ long readUSS()                                                                  
     mm = duration*0.5*0.344632;
     return mm;
 }
+//////////////////////////////////////////////////////
+float greenLights(dir)
+{
+  SetAngle(dir);
+  if (ReadUSS() >= 400)
+
+  {
+    return true;
+  }else{
+    return false;
+  }
+}
 
 
+void Turn(degrees, relativDir)
+{
+  if(relativeDir == Left)
+  {
+  digitalWrite(MR_Ctrl, HIGH);
+  digitalWrite(ML_Ctrl, LOW);
+  }
+	else if (relativeDir == Right)
+  {
+		digitalWrite(MR_Ctrl, LOW);
+		digitalWrite(ML_Ctrl, HIGH);
+	}
+	analogWrite(MR_PWM, MSR);
+	analogWrite(ML_PWM, MSL);
 
-
+  delay(10*degrees); //behöver prövas ut hur lång tid det tar att vrida en grad
+  
+  analogWrite(MR_PWM, 0);
+  analogWrite(ML_PWM, 0);
+  }
+}
 
 void FW()        //FrontWarning                                                    //To do
 {
   MSR=MSR;
+
+  digitalWrite(MR_Ctrl, HIGH);
+  analogWrite(MR_PWM, 0);
+  digitalWrite(ML_Ctrl, HIGH);
+  analogWrite(ML_PWM, 0);
+
+  if (greenLights(4) == true)
+    {
+      Turn(90, Right);
+    }
+
+  else if (greenLights(171) == true)
+    {
+      Turn(90, Left);
+    }
+  else{
+    Turn(180, Right);
+    
+  }
+
 }
+
+////////////////////////////////////////////////////////77
 
 void SW()                                                                         //If it works then done
 {
