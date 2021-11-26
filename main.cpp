@@ -11,29 +11,23 @@
 //In program variables
 int P=171;     //Position                                                        /*Position*/
 int SAD;       //SetAngleDelay                                                   /*SetAngleDelay*/
-int M;         //Millis                                                          /*Millis*/
+long M;         //Millis                                                          /*Millis*/
 bool D = false;//Direction       //true = to the left, false is to the midle     /*Direction*/
 
 //Trimming variables
-int MSR = 85;  //MaxSpeedRight                                                   /*MaxSpeedRight*/
-int MSL = 87;  //MaxSpeedLeft                                                    /*MaxmumSpeedLeft*/
-int MSAS = 0;  //MaxSideAdaptionSpeed                                            /*MaxSideAdaptionSpeed*/
-int RTSR = 0;  //RightTurnSpeedRight                                             /*RightTurnSpeedRight*/
-int RTSL = 0;  //RightTurnSpeedLeft                                              /*RightTurnSpeedLeft*/
+int MSR = 85;  //MaxSpeedRight   85                                              /*MaxSpeedRight*/
+int MSL = 87;  //MaxSpeedLeft    87                                              /*MaxmumSpeedLeft*/
+int MSAS = 63;  //MaxSideAdaptionSpeed                                           /*MaxSideAdaptionSpeed*/
+int LTSR = 200;  //LeftTurnSpeedRight                                            /*LeftTurnSpeedRight*/
+int LTSL = 70;  //LeftTurnSpeedLeft                                              /*leftTurnSpeedLeft*/
 
-int FWD = 400?;   //FrontWarningDistance                                            /*rontWarningDistance*/
-int SWD = 100?;   //SideWarningDistance                                             /*SideWarningDistance*/
-//går inte ovanstående och understående att lägga ihop?
-//Typ försök hålla ett avstånd till kanten på SWD mm.
-
+int FWD = 0;   //FrontWarningDistance                                            /*rontWarningDistance*/
+int SWD = 0;   //SideWarningDistance                                             /*SideWarningDistance*/
 int NSWD = 0;  //NoSideWarningDistance                                           /*NoSideWarningDistance*/
-int NSD = 300?;   //NoSideDistance                                                  /*NoSideDistance*/
+int NSD = 0;   //NoSideDistance                                                  /*NoSideDistance*/
 
 int NSBPT = 0; //NoSideBeginingPresisionTime                                     /*NoSideBeginingPresisionTime*/
-int RTT = 0;   //RightTurnTime                                                   /*RightTurnTime*/
-
-
-
+int LTT = 0.25;   //LeftTurnTime                                                 /*LeftTurnTime*/
 
 
 void setup()                                                                    //done
@@ -47,9 +41,6 @@ void setup()                                                                    
   pinMode(USSe, INPUT);     //set echoPin to INPUT
   pinMode(ServoPin, OUTPUT);//set Some servopin to OUTPUT
   SetAngle(171);
-
-  //Kan vara bra med en sleep, innan den börjar köra...
-  delay(1500);
 }
 
 int SetAngle(int myangel)                                                         //done
@@ -58,7 +49,7 @@ int SetAngle(int myangel)                                                       
   digitalWrite(ServoPin, HIGH);
   delayMicroseconds(SAD);
   digitalWrite(ServoPin, LOW);
-  return SAD;
+  return(10);
 }
 
 long readUSS()                                                                    //done
@@ -74,11 +65,15 @@ long readUSS()                                                                  
     mm = duration*0.5*0.344632;
     return mm;
 }
-//////////////////////////////////////////////////////
-float greenLights(dir)
+
+
+
+
+
+float greenLights(int dir)
 {
   SetAngle(dir);
-  if (ReadUSS() >= 400)
+  if (readUSS() >= 400)
 
   {
     return true;
@@ -87,27 +82,31 @@ float greenLights(dir)
   }
 }
 
+enum Direction
+{
+    Right,
+    Left
+};
 
-void Turn(degrees, relativDir)
+void Turn(int Degrees, float relativeDir)
 {
   if(relativeDir == Left)
   {
   digitalWrite(MR_Ctrl, HIGH);
   digitalWrite(ML_Ctrl, LOW);
   }
-	else if (relativeDir == Right)
+  else if (relativeDir == Right)
   {
-		digitalWrite(MR_Ctrl, LOW);
-		digitalWrite(ML_Ctrl, HIGH);
-	}
-	analogWrite(MR_PWM, MSR);
-	analogWrite(ML_PWM, MSL);
+    digitalWrite(MR_Ctrl, LOW);
+    digitalWrite(ML_Ctrl, HIGH);
+  }
+  analogWrite(MR_PWM, MSR);
+  analogWrite(ML_PWM, MSL);
 
-  delay(10*degrees); //behöver prövas ut hur lång tid det tar att vrida en grad
+  delay(10*Degrees); //behöver prövas ut hur lång tid det tar att vrida en grad
   
   analogWrite(MR_PWM, 0);
   analogWrite(ML_PWM, 0);
-  }
 }
 
 void FW()        //FrontWarning                                                    //To do
@@ -135,40 +134,25 @@ void FW()        //FrontWarning                                                 
 
 }
 
-////////////////////////////////////////////////////////77
+
+
 
 void SW()                                                                         //If it works then done
 {
   digitalWrite(MR_Ctrl, HIGH);
-  analogWrite(MR_PWM, MSR +MSAS*(int(readUSS)/SWD));
+  analogWrite(MR_PWM, MSR +MSAS*pow((int(readUSS())/SWD), 2));
   digitalWrite(ML_Ctrl, HIGH);
   analogWrite(ML_PWM, MSL);
+  while(readUSS>SW){delay(3);}
 }
 
 void NSW()                                                                        //If it works then done
 {
-  digitalWrite(MR_Ctrl, LOW);
-  analogWrite(MR_PWM, MSR);
-  digitalWrite(ML_Ctrl, LOW);
-  analogWrite(ML_PWM, MSL);
-  
-  while(readUSS>NSWD){delay(NSBPT);}  //makes that it will wait until the distance is bigger then the variable NoSideWarningDistance
-  Fd();
-
-  while(readUSS<NSD){delay(3);}       //makes that it will wait until the distance is smaler then the variable NoSideDistance
   digitalWrite(MR_Ctrl, HIGH);
-  analogWrite(MR_PWM, RTSR);
+  analogWrite(MR_PWM, LTSR);
   digitalWrite(ML_Ctrl, HIGH);
-  analogWrite(ML_PWM, RTSL);
-  M = millis;
-  while(millis<M+RTT)
-  {
-    SetAngle(90);
-    if(readUSS>FWD)
-    {
-      Fd();
-    }
-  }
+  analogWrite(ML_PWM, LTSL);
+  delay(LTT);
 }
 
 void Fd()                                                                         //Done
@@ -186,12 +170,13 @@ void Fd()                                                                       
 
 void loop()                                                                      //If it works then done
 {
- for(P=75;P<=171;P+=1)
+ Serial.println("Här1");
+ for(P=75;P<=171;P+=2)
   {
-  if(i>105 and i<110){P+=45;}
+  if(P>105 and P<110){P+=45;}
    SAD = SetAngle(P);
    M = millis();
-   while(millis()<M+(40-SAD/1000))
+   while(millis()<M+(SAD))
    {
        if(75<P<105)
        {
@@ -208,4 +193,7 @@ void loop()                                                                     
        Serial.println(readUSS());
     }
   }
+  delay(SAD+20);
+  SAD=SetAngle(70);
+  delay(SAD+150);
 }
