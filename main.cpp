@@ -9,10 +9,9 @@
 
 
 //In program variables
-int P=171;     //Position                                                        /*Position*/
-int SAD;       //SetAngleDelay                                                   /*SetAngleDelay*/
-long M;         //Millis                                                          /*Millis*/
-bool D = false;//Direction       //true = to the left, false is to the midle     /*Direction*/
+int P;     //Position      servo                                             /*Position*/
+//long M;         //Millis                                                         /*Millis*/
+int D;         //Distance
 
 //Trimming variables
 int MSR = 85;  //MaxSpeedRight   85                                              /*MaxSpeedRight*/
@@ -24,10 +23,8 @@ int LTSL = 70;  //LeftTurnSpeedLeft                                             
 int FWD = 300;   //FrontWarningDistance                                            /*rontWarningDistance*/
 int SWD = 160;   //SideWarningDistance                                             /*SideWarningDistance*/
 int NSWD = 0;  //NoSideWarningDistance                                           /*NoSideWarningDistance*/
-int NSD = 0;   //NoSideDistance                                                  /*NoSideDistance*/
 
-int NSBPT = 0; //NoSideBeginingPresisionTime                                     /*NoSideBeginingPresisionTime*/
-int LTT = 0.25;   //LeftTurnTime                                                 /*LeftTurnTime*/
+double turnTime = 6.5;                                               /*Time it takes to turn the robot one degree*/
 
 
 void setup()                                                                    //done
@@ -40,16 +37,18 @@ void setup()                                                                    
   pinMode(USSt, OUTPUT);    //set trigPin to OUTPUT
   pinMode(USSe, INPUT);     //set echoPin to INPUT
   pinMode(ServoPin, OUTPUT);//set Some servopin to OUTPUT
-  SetAngle(171);
 }
 
-int SetAngle(int myangel)                                                         //done
+void SetAngle(int degrees)                                                         //done
 {
-  int SAD = myangel*11+500;
+  int deg = 180-degrees%180;
+  if (degrees == 180)
+    deg=0;
+  int SAD = (deg-5.2-90)*11.8/(deg*0.0007+1)+1420;
   digitalWrite(ServoPin, HIGH);
   delayMicroseconds(SAD);
   digitalWrite(ServoPin, LOW);
-  return(10);
+  delay(10);
 }
 
 long readUSS()                                                                    //done
@@ -74,7 +73,6 @@ float greenLights(int dir)
 {
   SetAngle(dir);
   if (readUSS() >= 400)
-
   {
     return true;
   }else{
@@ -94,16 +92,18 @@ void Turn(int Degrees, float relativeDir)
   {
   digitalWrite(MR_Ctrl, HIGH);
   digitalWrite(ML_Ctrl, LOW);
+  analogWrite(MR_PWM, MSR-3);
+  analogWrite(ML_PWM, MSL-3);
   }
   else if (relativeDir == Right)
   {
     digitalWrite(MR_Ctrl, LOW);
     digitalWrite(ML_Ctrl, HIGH);
+    analogWrite(MR_PWM, MSR);
+    analogWrite(ML_PWM, MSL);
   }
-  analogWrite(MR_PWM, MSR);
-  analogWrite(ML_PWM, MSL);
 
-  delay(10*Degrees); //behöver prövas ut hur lång tid det tar att vrida en grad
+  delay(turnTime*Degrees); //behöver prövas ut hur lång tid det tar att vrida en grad
   
   analogWrite(MR_PWM, 0);
   analogWrite(ML_PWM, 0);
@@ -111,9 +111,8 @@ void Turn(int Degrees, float relativeDir)
 
 void FW()        //FrontWarning                                                    //To do
 {
-  MSR=MSR;
 
-  SetAngle(85);
+  SetAngle(90);
   digitalWrite(MR_Ctrl, HIGH);
   analogWrite(MR_PWM, 50);
   digitalWrite(ML_Ctrl, HIGH);
@@ -124,9 +123,7 @@ void FW()        //FrontWarning                                                 
     delay(3);
   }
 
-  digitalWrite(MR_Ctrl, HIGH);
   analogWrite(MR_PWM, 0);
-  digitalWrite(ML_Ctrl, HIGH);
   analogWrite(ML_PWM, 0);
 
   if (greenLights(171) == true)
@@ -151,11 +148,15 @@ void FW()        //FrontWarning                                                 
 void SW()                                                                         //If it works then done
 {
   digitalWrite(MR_Ctrl, HIGH);
-  analogWrite(MR_PWM, MSR +MSAS*pow((int(readUSS())/SWD), 2));
-  Serial.print(MSR +MSAS*pow((int(readUSS())/SWD), 2))
   digitalWrite(ML_Ctrl, HIGH);
+  analogWrite(MR_PWM, MSR -MSAS*min(pow((int(readUSS())/SWD), 2), 200));
   analogWrite(ML_PWM, MSL);
-  while(readUSS>SW){delay(3);}
+  while(readUSS()<SW)
+  {
+    analogWrite(MR_PWM, MSR -MSAS*pow((int(readUSS())/SWD), 2));
+  }
+  analogWrite(MR_PWM, 0);
+  analogWrite(ML_PWM, 0);
 }
 
 void NSW()                                                                        //If it works then done
@@ -173,38 +174,48 @@ void Fd()                                                                       
   analogWrite(MR_PWM, MSR);
   digitalWrite(ML_Ctrl, HIGH);
   analogWrite(ML_PWM, MSL);
-  delay(3);
 }
 
 
 
 
-
-void loop()                                                                      //If it works then done
+void loop()
 {
- for(P=75;P<=171;P+=2)
+//Locks to the front
+  for(P=75;P<=105;P+=5)
   {
-  if(P>105 and P<110){P+=45;}
-   SAD = SetAngle(P);
-   M = millis();
-   while(millis()<M+(SAD))
-   {
-       if(75<P and P<105)
-       {
-               if(readUSS<FWD){FW();}
-               else{Fd();}
-       }
-       else if(151<P and P<171)
-       {
-               if(readUSS<SWD){SW();}
-               else if(readUSS>NSWD){NSW();}
-               else{Fd();}
-       }
-       else{Fd();}
-       Serial.println(readUSS());
-    }
+    SetAngle(P);
+    D+=readUSS();
   }
-  delay(SAD+20);
-  SAD=SetAngle(60);
-  delay(SAD+200);
+
+//Makes an average value of 7 distances mesured to the front
+  D=D/7;
+  Serial.println(D);
+
+//If there is a wall near to the front, it  looks left and right and desides which way to go, else it goes forward
+  if(D<FWD){FW();}
+  else{Fd();}
+  
+//Sets angle to
+  SetAngle(0);
+
+//Locks to the 
+  for(P=0;P<=15;P+=3)
+  {
+    SetAngle(P);
+    D+=readUSS();
+  }
+  
+//Makes an average value of 5 distances mesured to the left
+  D=D/6;
+  Serial.println(D);
+
+//If the robot is to near the wal to the left, it adds some speed to the left motor, so that it turns to the right, depending on how near the wal it is, it turns more or less.
+  if(D<SWD){SW();}
+
+//
+  else if(D>NSWD){NSW();}
+
+//else it simple goeas forward
+  else{Fd();}
 }
