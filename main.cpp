@@ -49,7 +49,7 @@ void SetAngle(int Degrees)                                                      
   digitalWrite(ServoPin, HIGH);
   delayMicroseconds(SAD);
   digitalWrite(ServoPin, LOW);
-  delay(60);
+  delay(10*Degrees);
 }
 
 long readUSS()                                                                    //done
@@ -141,13 +141,6 @@ void FW()        //FrontWarning                                                 
 
 }
 
-void Fd()                                                                         //Done
-{
-  digitalWrite(MR_Ctrl, HIGH);
-  analogWrite(MR_PWM, MSR);
-  digitalWrite(ML_Ctrl, HIGH);
-  analogWrite(ML_PWM, MSL);
-}
 
 int magi(int D)
 {
@@ -156,72 +149,28 @@ int magi(int D)
   return RD;
 }
 
-
-void SW()                                                                         //If it works then done
+void Fd()  //AddapdiveForward
 {
   digitalWrite(MR_Ctrl, HIGH);
   digitalWrite(ML_Ctrl, HIGH);
   analogWrite(MR_PWM, MSR);
-  analogWrite(ML_PWM, magi(readUSS()));
-  while(readUSS()<SW)
-  {
-    analogWrite(ML_PWM, magi(readUSS()));
-  }
-  analogWrite(MR_PWM, 0);
-  analogWrite(ML_PWM, 0);
-
-  while(readUSS()<SWD or readUSS()>NSWD)
-  {	
-    Serial.println(readUSS());
-    analogWrite(ML_PWM, MSL);
-  }
+  analogWrite(ML_PWM, MSL);
 }
 
 
 
-
-
-
+void AS() //AddaptiveSide
+{
+  analogWrite(ML_PWM, magi(readUSS()));
+}
 
 void loop()
 {
-//Locks to the front
-  for(P=80;P<=110;P+=5)
+  Fd();
+  while(readUSS()<SWD or readUSS()>NSWD)
   {
-    SetAngle(P);
-    D+=readUSS();
+    AS();
   }
-
-//Makes an average value of 7 distances mesured to the front
-  D=D/7;
-  Serial.println(D);
-
-//If there is a wall near to the front, it  looks left and right and desides which way to go, else it goes forward
-  if(D<FWD){FW();}
-  else{Fd();}
-    
-//Sets angle to
-  SetAngle(0);
-  delay(200);
-
-//Locks to the 
-  for(P=0;P<=15;P+=3)
-  {
-    SetAngle(P);
-    D+=readUSS();
-  }
-    
-//Makes an average value of 5 distances mesured to the left
-  D=D/6;
-  Serial.println(D);
-
-//If the robot is to near the wal to the left, it adds some speed to the left motor, so that it turns to the right,depending on how near the wal it is, it turns more or less.
-  if(D<SWD or D>NSWD){SW();}
-
-//else it simple goeas forward
-  else{Fd();}
-
-
-	SetAngle(80);
-  delay(200);
+  SetAngle(180);
+  Serial.println(readUSS());
 }
