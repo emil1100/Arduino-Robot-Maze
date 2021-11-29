@@ -111,7 +111,6 @@ void Turn(int Degrees, float relativeDir)
 
 void FW()        //FrontWarning                                                    //To do
 {
-
   SetAngle(97);
   digitalWrite(MR_Ctrl, HIGH);
   analogWrite(MR_PWM, MSR);
@@ -142,63 +141,6 @@ void FW()        //FrontWarning                                                 
 
 }
 
-int magi(int D)
-{
-	//int RD = max(0, min(220,round(-2*D+424)));
-	int RD = max(0, min(220, round(0.0029*pow(min(D, 220), 2)-1.9735*min(D, 220)+333.1622)));
-	return RD;
-}
-
-
-void SW()                                                                         //If it works then done
-{
-	int AS=0;         //AverageSpeed
-	int AT=0;         //AdelaTpåsspeedjagmenara/sspeed
-	long M = millis();//Millisekundersedanstartavarduinon
-	D = readUSS();
-	SetAngle(15);
-
-  digitalWrite(MR_Ctrl, HIGH);
-  digitalWrite(ML_Ctrl, HIGH);
-  analogWrite(MR_PWM, MSR);
-  analogWrite(ML_PWM, magi(readUSS()));
-	if(D<SWD)
-	{
-		while(D<readUSS())
-		{
-			Serial.println(readUSS());
-			S = magi(readUSS());
-			AS += S;
-			AT+=1;
-  	  analogWrite(ML_PWM, S);
-		}
-	}
-	else if(D>NSWD)
-	{
-		while(D>readUSS())
-		{
-			Serial.println(readUSS());
-			S = magi(readUSS());
-			AS += S;
-			AT+=1;
-  	  analogWrite(ML_PWM, S);
-		}
-	}
-	M = millis() - M;
-	analogWrite(ML_PWM, (AS/AT));
-	delay(M)/2;
-	analogWrite(MSL);
-}
-
-
-  while(readUSS()<SWD or readUSS()>NSWD)
-  {	
-		Serial.println(readUSS());
-    analogWrite(ML_PWM, MSL);
-  }
-}
-
-
 void Fd()                                                                         //Done
 {
   digitalWrite(MR_Ctrl, HIGH);
@@ -206,6 +148,37 @@ void Fd()                                                                       
   digitalWrite(ML_Ctrl, HIGH);
   analogWrite(ML_PWM, MSL);
 }
+
+int magi(int D)
+{
+  //int RD = max(0, min(220,round(-2*D+424)));
+  int RD = max(0, min(220, round(0.0029*pow(min(D, 220), 2)-1.9735*min(D, 220)+333.1622)));
+  return RD;
+}
+
+
+void SW()                                                                         //If it works then done
+{
+  digitalWrite(MR_Ctrl, HIGH);
+  digitalWrite(ML_Ctrl, HIGH);
+  analogWrite(MR_PWM, MSR);
+  analogWrite(ML_PWM, magi(readUSS()));
+  while(readUSS()<SW)
+  {
+    analogWrite(ML_PWM, magi(readUSS()));
+  }
+  analogWrite(MR_PWM, 0);
+  analogWrite(ML_PWM, 0);
+
+  while(readUSS()<SWD or readUSS()>NSWD)
+  {	
+    Serial.println(readUSS());
+    analogWrite(ML_PWM, MSL);
+  }
+}
+
+
+
 
 
 
@@ -226,10 +199,10 @@ void loop()
 //If there is a wall near to the front, it  looks left and right and desides which way to go, else it goes forward
   if(D<FWD){FW();}
   else{Fd();}
-  
+    
 //Sets angle to
   SetAngle(0);
-	delay(200);
+  delay(200);
 
 //Locks to the 
   for(P=0;P<=15;P+=3)
@@ -237,12 +210,12 @@ void loop()
     SetAngle(P);
     D+=readUSS();
   }
-  
+    
 //Makes an average value of 5 distances mesured to the left
   D=D/6;
   Serial.println(D);
 
-//If the robot is to near the wal to the left, it adds some speed to the left motor, so that it turns to the right, depending on how near the wal it is, it turns more or less.
+//If the robot is to near the wal to the left, it adds some speed to the left motor, so that it turns to the right,depending on how near the wal it is, it turns more or less.
   if(D<SWD or D>NSWD){SW();}
 
 //else it simple goeas forward
@@ -250,5 +223,5 @@ void loop()
 
 
 	SetAngle(80);
-	delay(200);
+  delay(200);
 }
