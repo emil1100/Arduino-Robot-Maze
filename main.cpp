@@ -19,7 +19,12 @@ int MSL = 87;  //MaxSpeedLeft    87                                             
 int MSAS = 63;  //MaxSideAdaptionSpeed                                           /*MaxSideAdaptionSpeed*/
 int LTSR = 200;  //LeftTurnSpeedRight                                            /*LeftTurnSpeedRight*/
 int LTSL = 70;  //LeftTurnSpeedLeft                                              /*leftTurnSpeedLeft*/
-int S;          //Speed
+
+int SMT;   //speed mesuring times
+int AS;          //Speed
+int SS;
+int S;
+int T;   //time
 
 int FWD = 300;   //FrontWarningDistance                                            /*rontWarningDistance*/
 int SWD = 160;   //SideWarningDistance                                             /*SideWarningDistance*/
@@ -141,14 +146,6 @@ void FW()        //FrontWarning                                                 
 
 }
 
-
-int magi(int D)
-{
-  //int RD = max(0, min(220,round(-2*D+424)));
-  int RD = max(0, min(220, round(0.0029*pow(min(D, 220), 2)-1.9735*min(D, 220)+333.1622)));
-  return RD;
-}
-
 void Fd()  //AddapdiveForward
 {
   digitalWrite(MR_Ctrl, HIGH);
@@ -157,19 +154,51 @@ void Fd()  //AddapdiveForward
   analogWrite(ML_PWM, MSL);
 }
 
-void AS() //AddaptiveSide
-{
-	analogWrite(ML_PWM, magi(readUSS()));
-}
-
-
 void loop()
 {
   Fd();
-  while(readUSS()<SWD or readUSS()>NSWD)
-  {
-    AS();
-  }
+	D = readUSS()
+	if(D<SWD)
+	{
+		while(readUSS()<=D)
+		{
+			analogWrite(ML_PWM, MSL+max(min((1-(readUSS()/D)*MSAS),200),60));
+		}
+		M = millis();
+		while(readUSS()<SWD)
+		{
+			S = max(min((1-(readUSS()/D)*SWD),200),60);
+			SS += S;
+			SMT += 1;
+			analogWrite(ML_PWM, S);
+		}
+		AS = SS/SMT;
+		T = millis() - M;
+		analogWrite(ML_PWM, AS);
+		delay(T);
+		analogWrite(ML_PWM, MSL);
+	}
+	else if(D>NSWD)
+	{
+		while(readUSS()>=D)
+		{
+			analogWrite(MR_PWM, MSR+max(min((1-(readUSS()/D)*MSAS),200),60));
+		}
+		M = millis();
+		while(readUSS()>NSWD)
+		{
+			S = max(min((1-(readUSS()/D)*SWD),200),60);
+			SS += S;
+			SMT += 1;
+			analogWrite(MR_PWM, S);
+		}
+		AS = SS/SMT;
+		T = millis() - M;
+		analogWrite(MR_PWM, AS);
+		delay(T);
+		analogWrite(MR_PWM, MSR);
+	}
+
 	SetAngle(90);
 	if(readUSS()<FWD){FW();}
 	SetAngle(0);
