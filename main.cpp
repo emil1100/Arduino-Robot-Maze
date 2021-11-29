@@ -19,10 +19,11 @@ int MSL = 87;  //MaxSpeedLeft    87                                             
 int MSAS = 63;  //MaxSideAdaptionSpeed                                           /*MaxSideAdaptionSpeed*/
 int LTSR = 200;  //LeftTurnSpeedRight                                            /*LeftTurnSpeedRight*/
 int LTSL = 70;  //LeftTurnSpeedLeft                                              /*leftTurnSpeedLeft*/
+int S;          //Speed
 
 int FWD = 300;   //FrontWarningDistance                                            /*rontWarningDistance*/
 int SWD = 160;   //SideWarningDistance                                             /*SideWarningDistance*/
-int NSWD = 0;  //NoSideWarningDistance                                           /*NoSideWarningDistance*/
+int NSWD = 180;  //NoSideWarningDistance                                           /*NoSideWarningDistance*/
 
 double turnTime = 6.5;                                               /*Time it takes to turn the robot one degree*/
 
@@ -39,22 +40,21 @@ void setup()                                                                    
   pinMode(ServoPin, OUTPUT);//set Some servopin to OUTPUT
 }
 
-void SetAngle(int degrees)                                                         //done
+void SetAngle(int Degrees)                                                         //done
 {
-  int deg = 180-degrees%180;
-  if (degrees == 180)
-    deg=0;
+  int deg = 190-Degrees%180;
+  if (Degrees%360 == 180)
+    deg=10;
   int SAD = (deg-5.2-90)*11.8/(deg*0.0007+1)+1420;
   digitalWrite(ServoPin, HIGH);
   delayMicroseconds(SAD);
   digitalWrite(ServoPin, LOW);
-  delay(10);
+  delay(60);
 }
 
 long readUSS()                                                                    //done
 {
-    int duration;
-    int mm;
+    int duration, mm;
     digitalWrite(USSt, LOW);
     delayMicroseconds(2);
     digitalWrite(USSt, HIGH);
@@ -112,11 +112,11 @@ void Turn(int Degrees, float relativeDir)
 void FW()        //FrontWarning                                                    //To do
 {
 
-  SetAngle(90);
+  SetAngle(97);
   digitalWrite(MR_Ctrl, HIGH);
-  analogWrite(MR_PWM, 50);
+  analogWrite(MR_PWM, MSR);
   digitalWrite(ML_Ctrl, HIGH);
-  analogWrite(ML_PWM, 52);
+  analogWrite(ML_PWM, MSL);
 
   while(readUSS() > 110)
   {
@@ -126,12 +126,12 @@ void FW()        //FrontWarning                                                 
   analogWrite(MR_PWM, 0);
   analogWrite(ML_PWM, 0);
 
-  if (greenLights(171) == true)
+  if (greenLights(0) == true)
     {
       Turn(90, Left);
     }
 
-  else if (greenLights(4) == true)
+  else if (greenLights(180) == true)
     {
       Turn(90, Right);
     }
@@ -142,31 +142,62 @@ void FW()        //FrontWarning                                                 
 
 }
 
-
+int magi(int D)
+{
+	//int RD = max(0, min(220,round(-2*D+424)));
+	int RD = max(0, min(220, round(0.0029*pow(min(D, 220), 2)-1.9735*min(D, 220)+333.1622)));
+	return RD;
+}
 
 
 void SW()                                                                         //If it works then done
 {
+	int AS=0;         //AverageSpeed
+	int AT=0;         //AdelaTpåsspeedjagmenara/sspeed
+	long M = millis();//Millisekundersedanstartavarduinon
+	D = readUSS();
+	SetAngle(15);
+
   digitalWrite(MR_Ctrl, HIGH);
   digitalWrite(ML_Ctrl, HIGH);
-  analogWrite(MR_PWM, MSR -MSAS*min(pow((int(readUSS())/SWD), 2), 200));
-  analogWrite(ML_PWM, MSL);
-  while(readUSS()<SW)
-  {
-    analogWrite(MR_PWM, MSR -MSAS*pow((int(readUSS())/SWD), 2));
-  }
-  analogWrite(MR_PWM, 0);
-  analogWrite(ML_PWM, 0);
+  analogWrite(MR_PWM, MSR);
+  analogWrite(ML_PWM, magi(readUSS()));
+	if(D<SWD)
+	{
+		while(D<readUSS())
+		{
+			Serial.println(readUSS());
+			S = magi(readUSS());
+			AS += S;
+			AT+=1;
+  	  analogWrite(ML_PWM, S);
+		}
+	}
+	else if(D>NSWD)
+	{
+		while(D>readUSS())
+		{
+			Serial.println(readUSS());
+			S = magi(readUSS());
+			AS += S;
+			AT+=1;
+  	  analogWrite(ML_PWM, S);
+		}
+	}
+	M = millis() - M;
+	analogWrite(ML_PWM, (AS/AT));
+	delay(M)/2;
+	analogWrite(MSL);
 }
 
-void NSW()                                                                        //If it works then done
-{
-  digitalWrite(MR_Ctrl, HIGH);
-  analogWrite(MR_PWM, LTSR);
-  digitalWrite(ML_Ctrl, HIGH);
-  analogWrite(ML_PWM, LTSL);
-  delay(LTT);
+
+  while(readUSS()<SWD or readUSS()>NSWD)
+  {	
+		Serial.println(readUSS());
+    analogWrite(ML_PWM, MSL);
+  }
 }
+
 
 void Fd()                                                                         //Done
 {
@@ -182,7 +213,7 @@ void Fd()                                                                       
 void loop()
 {
 //Locks to the front
-  for(P=75;P<=105;P+=5)
+  for(P=80;P<=110;P+=5)
   {
     SetAngle(P);
     D+=readUSS();
@@ -198,6 +229,7 @@ void loop()
   
 //Sets angle to
   SetAngle(0);
+	delay(200);
 
 //Locks to the 
   for(P=0;P<=15;P+=3)
@@ -211,11 +243,12 @@ void loop()
   Serial.println(D);
 
 //If the robot is to near the wal to the left, it adds some speed to the left motor, so that it turns to the right, depending on how near the wal it is, it turns more or less.
-  if(D<SWD){SW();}
-
-//
-  else if(D>NSWD){NSW();}
+  if(D<SWD or D>NSWD){SW();}
 
 //else it simple goeas forward
   else{Fd();}
+
+
+	SetAngle(80);
+	delay(200);
 }
