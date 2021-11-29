@@ -157,12 +157,11 @@ void Fd()  //AddapdiveForward
   analogWrite(ML_PWM, MSL);
 }
 
-
-
 void AS() //AddaptiveSide
 {
-  analogWrite(ML_PWM, magi(readUSS()));
+	analogWrite(ML_PWM, magi(readUSS()));
 }
+
 
 void loop()
 {
@@ -171,6 +170,8 @@ void loop()
   {
     AS();
   }
-  SetAngle(180);
-  Serial.println(readUSS());
+	SetAngle(90);
+	if(readUSS()<FWD){FW();}
+	SetAngle(0);
+	Serial.println(readUSS());
 }
